@@ -17,7 +17,7 @@ public class Program
             var artist = item.Artist ?? item.BandInfo.Name;
             var album = item.Title;
 
-            Console.WriteLine($"{id,10}  {artist} — {album}");
+            Console.WriteLine($"{id,10} {artist} — {album}");
         }
     }
 }
