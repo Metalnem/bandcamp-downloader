@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Api;
 
@@ -9,12 +9,15 @@ public class Program
         var username = Environment.GetEnvironmentVariable("BANDCAMP_USERNAME");
         var password = Environment.GetEnvironmentVariable("BANDCAMP_PASSWORD");
 
-        using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-        using var client = new Client(username, password, loggerFactory);
+        using var client = new Client(username, password, NullLoggerFactory.Instance);
 
         await foreach (var item in client.GetCollection())
         {
-            Console.WriteLine($"{item.BandInfo.Name} - {item.Title}");
+            var id = item.TralbumId;
+            var artist = item.Artist ?? item.BandInfo.Name;
+            var album = item.Title;
+
+            Console.WriteLine($"{id,10}  {artist} — {album}");
         }
     }
 }
