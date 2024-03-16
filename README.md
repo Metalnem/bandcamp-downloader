@@ -15,7 +15,7 @@ purchased, but that are no longer available on Bandcamp website. Requires
 
 ## Usage
 
-```shell
+```
 $ dotnet run
 Description:
   List all albums in your Bandcamp collection.
