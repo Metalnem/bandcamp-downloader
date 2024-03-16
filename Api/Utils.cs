@@ -2,6 +2,9 @@ namespace Api;
 
 public static class Utils
 {
+    private static readonly char[] _invalidFileNameChars =
+        new char[] { '\"', '<', '>', '|', ':', '*', '?', '\\', '/' };
+
     private const string Base36Chars = "0123456789abcdefghijklmnopqrstuvwxyz";
 
     public static string Reverse(this string s)
@@ -30,5 +33,19 @@ public static class Utils
         }
 
         return result;
+    }
+
+    public static string GetSafeFileName(string trackTitle)
+    {
+        var fileName = trackTitle
+            .Replace("?", string.Empty)
+            .Replace('\"', '\'');
+
+        foreach (var invalidChar in _invalidFileNameChars)
+        {
+            fileName = fileName.Replace(invalidChar, '-');
+        }
+
+        return fileName.Trim();
     }
 }
