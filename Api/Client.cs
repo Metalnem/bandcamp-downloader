@@ -64,7 +64,7 @@ public class Client : IDisposable
         };
 
         var collection = await GetCollection(queryString);
-        return collection.Items.Single();
+        return collection.Items.SingleOrDefault();
     }
 
     public async IAsyncEnumerable<Album> GetCollection()

@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using System.IO.Compression;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Api;
@@ -7,9 +8,9 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        var username = CreateOption("--username", "Your Bandcamp account username.");
-        var password = CreateOption("--password", "Your Bandcamp account password.");
-        var album = CreateOption("--album", "ID of the album you want to download.");
+        var username = CreateOption<string>("--username", "Your Bandcamp account username.");
+        var password = CreateOption<string>("--password", "Your Bandcamp account password.");
+        var albumId = CreateOption<long>("--album", "ID of the album you want to download.");
 
         var listCommand = new RootCommand("List all albums in your Bandcamp collection.")
         {
@@ -21,12 +22,12 @@ public class Program
         {
             username,
             password,
-            album
+            albumId
         };
 
         listCommand.AddCommand(downloadCommand);
         listCommand.SetHandler(List, username, password);
-        downloadCommand.SetHandler(Download, username, password, album);
+        downloadCommand.SetHandler(Download, username, password, albumId);
 
         await listCommand.InvokeAsync(args);
     }
@@ -45,14 +46,55 @@ public class Program
         }
     }
 
-    private static void Download(string username, string password, string album)
+    private static async Task Download(string username, string password, long albumId)
     {
-        throw new NotImplementedException();
+        using var client = new Client(username, password, NullLoggerFactory.Instance);
+
+        var album = await client.GetAlbum(albumId);
+
+        if (album == null)
+        {
+            throw new Exception($"Album {albumId} is not available.");
+        }
+
+        if (album.Tracks == null)
+        {
+            throw new Exception($"{album.Title} doesn't have any tracks.");
+        }
+
+        using var output = new MemoryStream();
+        using var httpClient = new HttpClient();
+
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, true))
+        {
+            foreach (var track in album.Tracks)
+            {
+                var fileName = $"{track.TrackNumber:00}. {Utils.GetSafeFileName(track.Title)}.mp3";
+                var entry = archive.CreateEntry(fileName);
+
+                using var entryStream = entry.Open();
+                using var audioStream = await httpClient.GetStreamAsync(track.HqAudioUrl);
+
+                await audioStream.CopyToAsync(entryStream);
+            }
+        }
+
+        var artist = album.Artist ?? album.BandInfo.Name;
+        var archiveName = $"{artist} - {album.Title}";
+
+        using var file = File.Create(
+            path: $"{Utils.GetSafeFileName(archiveName)}.zip",
+            bufferSize: 4096,
+            options: FileOptions.Asynchronous
+        );
+
+        output.Position = 0;
+        await output.CopyToAsync(file);
     }
 
-    private static Option<string> CreateOption(string name, string description)
+    private static Option<T> CreateOption<T>(string name, string description)
     {
-        return new Option<string>(name, description)
+        return new Option<T>(name, description)
         {
             IsRequired = true
         };
