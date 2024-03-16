@@ -1,8 +1,9 @@
 ﻿using System.CommandLine;
 using System.IO.Compression;
+using Api;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Api;
+namespace BandcampDownloader;
 
 public class Program
 {

@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api", "Api\Api.csproj", "{A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api.Tests", "Api.Tests\Api.Tests.csproj", "{23560892-86E2-44D8-9AD2-C89B62A4AB48}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BandcampDownloader", "BandcampDownloader\BandcampDownloader.csproj", "{99B9FF26-BF0B-4CDD-8C9C-E7E9B35122F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{23560892-86E2-44D8-9AD2-C89B62A4AB48}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{23560892-86E2-44D8-9AD2-C89B62A4AB48}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{23560892-86E2-44D8-9AD2-C89B62A4AB48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99B9FF26-BF0B-4CDD-8C9C-E7E9B35122F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99B9FF26-BF0B-4CDD-8C9C-E7E9B35122F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99B9FF26-BF0B-4CDD-8C9C-E7E9B35122F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99B9FF26-BF0B-4CDD-8C9C-E7E9B35122F2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
