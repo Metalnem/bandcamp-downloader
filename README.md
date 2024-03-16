@@ -31,7 +31,7 @@ Commands:
   download  Download the album with the specified ID.
 ```
 
-## Examples
+## Example
 
 ```shell
 # List all albums in your Bandcamp collection
