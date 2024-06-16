@@ -70,7 +70,7 @@ public class Program
         {
             foreach (var track in album.Tracks)
             {
-                var fileName = $"{track.TrackNumber:00}. {Utils.GetSafeFileName(track.Title)}.mp3";
+                var fileName = $"{(track.TrackNumber ?? 1):00}. {Utils.GetSafeFileName(track.Title)}.mp3";
                 var entry = archive.CreateEntry(fileName);
 
                 using var entryStream = entry.Open();
