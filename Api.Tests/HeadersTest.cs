@@ -10,6 +10,7 @@ public class HeadersTest
 
     [TestCase("da6b74b374809c6d7ad76c4c35cdd3f5056589ac7", "ae3ac5c1a6b371ad27b05d282813e757f8caecf792957d8654b49ca49506ff2e")]
     [TestCase("e0071819613bd08a28428b9c8903fc75dc0bd23da", "92b1a43d30d0fc3c8dee8f1ae10488f515c98aefed5d42c743d9d858dfc829d3")]
+    [TestCase("3ede812feed13e552eecbfb9442a41a22acab2f26", "33298488b2748e44fc64954c81f37058d54afd21")]
     public void TestDm(string incomingDm, string outgoingDm)
     {
         var parameters = new { email = Username, password = Password };

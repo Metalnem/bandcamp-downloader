@@ -32,7 +32,7 @@ public static class Headers
             throw new Exception("HMAC SHA-516 KDF is currently not supported.");
         }
 
-        return Crypto.HmacSha1("dtmfa", requestBody);
+        return Crypto.HmacSha1("dtmfa", Sha1Kdf.DeriveKey(dm) + requestBody);
     }
 
     public static string CalculatePow(string pow, string requestBody)
