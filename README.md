@@ -42,5 +42,5 @@ $ dotnet run --username $USERNAME --password $PASSWORD
 1362411941 MIDNIGHT — Complete and Total Hell
 
 # Download the album with the specified ID
-$ dotnet run --username $USERNAME --password $PASSWORD --album 3049477697
+$ dotnet run download --username $USERNAME --password $PASSWORD --album 3049477697
 ```
