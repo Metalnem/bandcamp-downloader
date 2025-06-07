@@ -11,7 +11,7 @@
 Command line tool to download albums from your Bandcamp collection in MP3
 V0 format. Its primary purpose is to allow you to download the albums you
 purchased, but that are no longer available on Bandcamp website. Requires
-[.NET 8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) to run.
+[.NET](https://dotnet.microsoft.com/en-us/download) to run.
 
 ## Usage
 
