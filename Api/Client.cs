@@ -11,185 +11,205 @@ namespace Api;
 
 public class Client : IDisposable
 {
-    private const string RequestedWith = "com.bandcamp.android";
-    private const string ClientId = "134";
-    private const string ClientSecret = "1myK12VeCL3dWl9o/ncV2VyUUbOJuNPVJK6bZZJxHvk=";
-    private const string XBandcampDm = "X-Bandcamp-Dm";
-    private const string XBandcampPow = "X-Bandcamp-Pow";
+	private const string RequestedWith = "com.bandcamp.android";
+	private const string ClientId = "134";
+	private const string ClientSecret = "1myK12VeCL3dWl9o/ncV2VyUUbOJuNPVJK6bZZJxHvk=";
+	private const string XBandcampDm = "X-Bandcamp-Dm";
+	private const string XBandcampPow = "X-Bandcamp-Pow";
 
-    // Allow one 418 and one 451 before successful response
-    private const int MaxLoginAttempts = 2;
-    private const int PageSize = 200;
+	// Allow one 418 and one 451 before successful response
+	private const int MaxLoginAttempts = 2;
+	private const int PageSize = 200;
 
-    private static readonly JsonSerializerOptions serializerOptions = new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-    };
+	private static readonly JsonSerializerOptions serializerOptions = new JsonSerializerOptions
+	{
+		PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+	};
 
-    private readonly ILogger<Client> logger;
-    private readonly HttpClientHandler handler;
-    private readonly HttpClient client;
-    private readonly Task<LoginResponse> loginTask;
+	private readonly ILogger<Client> logger;
+	private readonly HttpClientHandler handler;
+	private readonly HttpClient client;
+	private readonly Task<LoginResponse> loginTask;
 
-    private string dm;
-    private string pow;
+	private string dm;
+	private string pow;
 
-    public Client(string username, string password, ILoggerFactory loggerFactory)
-    {
-        ArgumentNullException.ThrowIfNullOrEmpty(username);
-        ArgumentNullException.ThrowIfNullOrEmpty(password);
+	public Client(string username, string password, ILoggerFactory loggerFactory)
+	{
+		ArgumentNullException.ThrowIfNullOrEmpty(username);
+		ArgumentNullException.ThrowIfNullOrEmpty(password);
 
-        logger = loggerFactory.CreateLogger<Client>();
+		logger = loggerFactory.CreateLogger<Client>();
 
-        handler = new HttpClientHandler
-        {
-            UseCookies = true,
-            CookieContainer = new CookieContainer()
-        };
+		handler = new HttpClientHandler
+		{
+			UseCookies = true,
+			CookieContainer = new CookieContainer()
+		};
 
-        client = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("https://bandcamp.com/")
-        };
+		client = new HttpClient(handler)
+		{
+			BaseAddress = new Uri("https://bandcamp.com/")
+		};
 
-        loginTask = Login(username, password);
-    }
+		loginTask = Login(username, password);
+	}
 
-    public async Task<Album> GetAlbum(long id)
-    {
-        var queryString = new Dictionary<string, string>
-        {
-            ["tralbum_type"] = "a",
-            ["tralbum_id"] = id.ToString()
-        };
+	public async Task<Album> GetAlbum(long id)
+	{
+		var queryString = new Dictionary<string, string>
+		{
+			["tralbum_type"] = "a",
+			["tralbum_id"] = id.ToString()
+		};
 
-        var collection = await GetCollection(queryString);
-        return collection.Items.SingleOrDefault();
-    }
+		var collection = await GetCollection(queryString);
+		return collection.Items.SingleOrDefault();
+	}
 
-    public async IAsyncEnumerable<Album> GetCollection()
-    {
-        var queryString = new Dictionary<string, string>
-        {
-            ["page_size"] = PageSize.ToString()
-        };
+	public async Task<AlbumDetails> GetAlbumDetails(long id)
+	{
+		var request = new AlbumDetailsRequest
+		{
+			TralbumType = "a",
+			BandId = 1,
+			TralbumId = id
+		};
 
-        for (; ; )
-        {
-            var collection = await GetCollection(queryString);
+		using var content = JsonContent.Create(request, options: serializerOptions);
 
-            if (collection.Items.Count == 0)
-            {
-                yield break;
-            }
+		using var response = await client.PostAsJsonAsync(
+			"/api/mobile/25/tralbum_details",
+			request,
+			serializerOptions
+		);
 
-            queryString["offset"] = collection.Items.Last().Token;
+		return await response.Content.ReadFromJsonAsync<AlbumDetails>(serializerOptions);
+	}
 
-            foreach (var album in collection.Items)
-            {
-                yield return album;
-            }
-        }
-    }
+	public async IAsyncEnumerable<Album> GetCollection()
+	{
+		var queryString = new Dictionary<string, string>
+		{
+			["page_size"] = PageSize.ToString()
+		};
 
-    private async Task<Collection> GetCollection(Dictionary<string, string> queryString)
-    {
-        var uri = "/api/collectionsync/1/collection";
-        var requestUri = QueryHelpers.AddQueryString(uri, queryString);
-        var accessToken = (await loginTask).AccessToken;
+		for (; ; )
+		{
+			var collection = await GetCollection(queryString);
 
-        using var message = new HttpRequestMessage(HttpMethod.Get, requestUri);
-        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+			if (collection.Items.Count == 0)
+			{
+				yield break;
+			}
 
-        using var response = await client.SendAsync(message);
-        response.EnsureSuccessStatusCode();
+			queryString["offset"] = collection.Items.Last().Token;
 
-        return await response.Content.ReadFromJsonAsync<Collection>(serializerOptions);
-    }
+			foreach (var album in collection.Items)
+			{
+				yield return album;
+			}
+		}
+	}
 
-    private async Task<LoginResponse> Login(string username, string password)
-    {
-        for (int i = 0; i < MaxLoginAttempts; ++i)
-        {
-            using var content = new FormUrlEncodedContent(GetLoginParameters(username, password));
-            using var response = await SendRequest<LoginResponse>(content, "oauth_login");
+	private async Task<Collection> GetCollection(Dictionary<string, string> queryString)
+	{
+		var uri = "/api/collectionsync/1/collection";
+		var requestUri = QueryHelpers.AddQueryString(uri, queryString);
+		var accessToken = (await loginTask).AccessToken;
 
-            var status = (int)response.StatusCode;
+		using var message = new HttpRequestMessage(HttpMethod.Get, requestUri);
+		message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            if (status == 418 || status == 451)
-            {
-                continue;
-            }
+		using var response = await client.SendAsync(message);
+		response.EnsureSuccessStatusCode();
 
-            response.EnsureSuccessStatusCode();
+		return await response.Content.ReadFromJsonAsync<Collection>(serializerOptions);
+	}
 
-            return await response.Content.ReadFromJsonAsync<LoginResponse>(serializerOptions);
-        }
+	private async Task<LoginResponse> Login(string username, string password)
+	{
+		for (int i = 0; i < MaxLoginAttempts; ++i)
+		{
+			using var content = new FormUrlEncodedContent(GetLoginParameters(username, password));
+			using var response = await SendRequest<LoginResponse>(content, "oauth_login");
 
-        throw new Exception("Max number of login attempts exceeded.");
-    }
+			var status = (int)response.StatusCode;
 
-    private async Task<HttpResponseMessage> SendRequest<T>(HttpContent content, string requestUri)
-    {
-        var requestBody = await content.ReadAsStringAsync();
+			if (status == 418 || status == 451)
+			{
+				continue;
+			}
 
-        using var message = new HttpRequestMessage(HttpMethod.Post, requestUri)
-        {
-            Content = content,
-            Version = new Version(2, 0)
-        };
+			response.EnsureSuccessStatusCode();
 
-        SetHeaders(message.Headers, requestBody);
+			return await response.Content.ReadFromJsonAsync<LoginResponse>(serializerOptions);
+		}
 
-        var response = await client.SendAsync(message);
-        OnHeadersReceived(response.Headers);
+		throw new Exception("Max number of login attempts exceeded.");
+	}
 
-        return response;
-    }
+	private async Task<HttpResponseMessage> SendRequest<T>(HttpContent content, string requestUri)
+	{
+		var requestBody = await content.ReadAsStringAsync();
 
-    private void SetHeaders(HttpRequestHeaders headers, string requestBody)
-    {
-        headers.Add(HeaderNames.XRequestedWith, RequestedWith);
+		using var message = new HttpRequestMessage(HttpMethod.Post, requestUri)
+		{
+			Content = content,
+			Version = new Version(2, 0)
+		};
 
-        var bandcampDm = Headers.CalculateDm(dm, requestBody);
-        logger.LogInformation($"Sending {XBandcampDm} header {bandcampDm}");
-        headers.Add(XBandcampDm, bandcampDm);
+		SetHeaders(message.Headers, requestBody);
 
-        if (pow != null)
-        {
-            var bandcampPow = Headers.CalculatePow(pow, requestBody);
-            logger.LogInformation($"Sending {XBandcampPow} header {bandcampPow}");
-            headers.Add(XBandcampPow, bandcampPow);
-        }
-    }
+		var response = await client.SendAsync(message);
+		OnHeadersReceived(response.Headers);
 
-    private void OnHeadersReceived(HttpResponseHeaders headers)
-    {
-        dm = headers.GetValues(XBandcampDm).Single();
-        logger.LogInformation($"Received {XBandcampDm} header {dm}");
+		return response;
+	}
 
-        if (headers.TryGetValues(XBandcampPow, out var values))
-        {
-            pow = values.Single();
-            logger.LogInformation($"Received {XBandcampPow} header {pow}");
-        }
-    }
+	private void SetHeaders(HttpRequestHeaders headers, string requestBody)
+	{
+		headers.Add(HeaderNames.XRequestedWith, RequestedWith);
 
-    private static IEnumerable<KeyValuePair<string, string>> GetLoginParameters(
-        string username,
-        string password
-    )
-    {
-        yield return KeyValuePair.Create("grant_type", "password");
-        yield return KeyValuePair.Create("username", username);
-        yield return KeyValuePair.Create("password", password);
-        yield return KeyValuePair.Create("client_id", ClientId);
-        yield return KeyValuePair.Create("client_secret", ClientSecret);
-    }
+		var bandcampDm = Headers.CalculateDm(dm, requestBody);
+		logger.LogInformation($"Sending {XBandcampDm} header {bandcampDm}");
+		headers.Add(XBandcampDm, bandcampDm);
 
-    public void Dispose()
-    {
-        handler.Dispose();
-        client.Dispose();
-    }
+		if (pow != null)
+		{
+			var bandcampPow = Headers.CalculatePow(pow, requestBody);
+			logger.LogInformation($"Sending {XBandcampPow} header {bandcampPow}");
+			headers.Add(XBandcampPow, bandcampPow);
+		}
+	}
+
+	private void OnHeadersReceived(HttpResponseHeaders headers)
+	{
+		dm = headers.GetValues(XBandcampDm).Single();
+		logger.LogInformation($"Received {XBandcampDm} header {dm}");
+
+		if (headers.TryGetValues(XBandcampPow, out var values))
+		{
+			pow = values.Single();
+			logger.LogInformation($"Received {XBandcampPow} header {pow}");
+		}
+	}
+
+	private static IEnumerable<KeyValuePair<string, string>> GetLoginParameters(
+		string username,
+		string password
+	)
+	{
+		yield return KeyValuePair.Create("grant_type", "password");
+		yield return KeyValuePair.Create("username", username);
+		yield return KeyValuePair.Create("password", password);
+		yield return KeyValuePair.Create("client_id", ClientId);
+		yield return KeyValuePair.Create("client_secret", ClientSecret);
+	}
+
+	public void Dispose()
+	{
+		handler.Dispose();
+		client.Dispose();
+	}
 }
