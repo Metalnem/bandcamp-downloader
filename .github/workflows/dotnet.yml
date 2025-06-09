@@ -1,11 +1,14 @@
-name: .NET
+name: Build and test
 
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: '45 16 * * *'
   push:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,9 +17,23 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+    - name: Unit tests
+      run: dotnet test --verbosity normal
+    - name: End-to-end tests
+      working-directory: BandcampDownloader
+      shell: pwsh
+      run: |
+        $output = dotnet run `
+          --configuration Release `
+          --username "${{ secrets.BANDCAMP_USERNAME }}" `
+          --password "${{ secrets.BANDCAMP_PASSWORD }}" `
+          | Out-String
+
+        $expected = Get-Content Albums.txt -Raw
+
+        if ($output.Contains($expected)) {
+            Write-Host "✅ Albums.txt content found in output"
+        } else {
+            Write-Host "❌ Albums.txt content not found in output"
+            exit 1
+        }
