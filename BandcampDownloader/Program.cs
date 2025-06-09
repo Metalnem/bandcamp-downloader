@@ -1,6 +1,7 @@
 ﻿using System.CommandLine;
 using System.IO.Compression;
 using Api;
+using Api.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -8,16 +9,26 @@ namespace BandcampDownloader;
 
 public class Program
 {
+	// LoggerFactory.Create(builder => builder.AddConsole())
+	private static readonly ILoggerFactory logger = NullLoggerFactory.Instance;
+
 	public static async Task Main(string[] args)
 	{
 		var username = CreateOption<string>("--username", "Your Bandcamp account username.");
 		var password = CreateOption<string>("--password", "Your Bandcamp account password.");
 		var albumId = CreateOption<long>("--album", "ID of the album you want to download.");
 
+		var disabledOnly = CreateOption<bool>(
+			"--disabled-only",
+			"List only albums that have been removed from your collection.",
+			isRequired: false
+		);
+
 		var listCommand = new RootCommand("List all albums in your Bandcamp collection.")
 		{
 			username,
 			password,
+			disabledOnly
 		};
 
 		var downloadCommand = new Command("download", "Download the album with the specified ID.")
@@ -28,30 +39,48 @@ public class Program
 		};
 
 		listCommand.AddCommand(downloadCommand);
-		listCommand.SetHandler(List, username, password);
+		listCommand.SetHandler(List, username, password, disabledOnly);
 		downloadCommand.SetHandler(Download, username, password, albumId);
 
 		await listCommand.InvokeAsync(args);
 	}
 
-	private static async Task List(string username, string password)
+	private static async Task List(string username, string password, bool disabledOnly)
 	{
-		using var logger = LoggerFactory.Create(builder => builder.AddConsole());
-		using var client = new Client(username, password, NullLoggerFactory.Instance);
+		using var client = new Client(username, password, logger);
 
 		await foreach (var item in client.GetCollection())
 		{
-			var id = item.TralbumId;
-			var artist = item.Artist ?? item.BandInfo.Name;
-			var album = item.Title;
+			if (disabledOnly)
+			{
+				var details = await client.GetAlbumDetails(item.TralbumId);
 
-			Console.WriteLine($"{id,10} {artist} — {album}");
+				if (details?.BandcampUrl?.Contains("-disabled-") == true)
+				{
+					PrintAlbumDetails(item);
+				}
+
+				await Task.Delay(TimeSpan.FromSeconds(1));
+			}
+			else
+			{
+				PrintAlbumDetails(item);
+			}
 		}
+	}
+
+	private static void PrintAlbumDetails(Album album)
+	{
+		var id = album.TralbumId;
+		var artist = album.Artist ?? album.BandInfo.Name;
+		var title = album.Title;
+
+		Console.WriteLine($"{id,10} {artist} — {title}");
 	}
 
 	private static async Task Download(string username, string password, long albumId)
 	{
-		using var client = new Client(username, password, NullLoggerFactory.Instance);
+		using var client = new Client(username, password, logger);
 
 		var album = await client.GetAlbum(albumId);
 
@@ -110,11 +139,11 @@ public class Program
 		await output.CopyToAsync(file);
 	}
 
-	private static Option<T> CreateOption<T>(string name, string description)
+	private static Option<T> CreateOption<T>(string name, string description, bool isRequired = true)
 	{
 		return new Option<T>(name, description)
 		{
-			IsRequired = true
+			IsRequired = isRequired
 		};
 	}
 }

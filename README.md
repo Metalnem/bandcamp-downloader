@@ -26,6 +26,7 @@ Usage:
 Options:
   --username <username> (REQUIRED)  Your Bandcamp account username.
   --password <password> (REQUIRED)  Your Bandcamp account password.
+  --disabled-only                   List only albums that have been removed from your collection.
 
 Commands:
   download  Download the album with the specified ID.
