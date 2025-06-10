@@ -20,16 +20,16 @@ jobs:
     - name: Unit tests
       run: dotnet test --verbosity normal
     - name: End-to-end tests
-      working-directory: BandcampDownloader
       shell: pwsh
       run: |
         $output = dotnet run `
+          --project BandcampDownloader/BandcampDownloader.csproj
           --configuration Release `
           --username "${{ secrets.BANDCAMP_USERNAME }}" `
           --password "${{ secrets.BANDCAMP_PASSWORD }}" `
           | Out-String
 
-        $expected = Get-Content Albums.txt -Raw
+        $expected = Get-Content "Testcases/Albums.txt" -Raw
 
         if ($output.Contains($expected)) {
             Write-Host "✅ Albums.txt content found in output"
