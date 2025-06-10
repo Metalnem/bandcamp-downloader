@@ -23,7 +23,7 @@ jobs:
       shell: pwsh
       run: |
         $output = dotnet run `
-          --project BandcampDownloader/BandcampDownloader.csproj
+          --project BandcampDownloader/BandcampDownloader.csproj `
           --configuration Release `
           --username "${{ secrets.BANDCAMP_USERNAME }}" `
           --password "${{ secrets.BANDCAMP_PASSWORD }}" `
