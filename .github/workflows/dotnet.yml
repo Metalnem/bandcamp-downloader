@@ -22,14 +22,14 @@ jobs:
     - name: End-to-end tests
       shell: pwsh
       run: |
-        $output = dotnet run `
+        dotnet run `
           --project BandcampDownloader/BandcampDownloader.csproj `
           --configuration Release `
           --username "${{ secrets.BANDCAMP_USERNAME }}" `
           --password "${{ secrets.BANDCAMP_PASSWORD }}" `
-          | Tee-Object -FilePath "/dev/tty" `
-          | Out-String
+          | Tee-Object -FilePath "Output.txt"
 
+        $output = Get-Content "Output.txt" -Raw
         $expected = Get-Content "Testcases/Albums.txt" -Raw
 
         if ($output.Contains($expected)) {
