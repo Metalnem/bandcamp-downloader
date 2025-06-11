@@ -27,6 +27,7 @@ jobs:
           --configuration Release `
           --username "${{ secrets.BANDCAMP_USERNAME }}" `
           --password "${{ secrets.BANDCAMP_PASSWORD }}" `
+          | Tee-Object -FilePath "/dev/tty" `
           | Out-String
 
         $expected = Get-Content "Testcases/Albums.txt" -Raw
