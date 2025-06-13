@@ -19,4 +19,9 @@
     <ProjectReference Include="..\Api\Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Actual.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Expected.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

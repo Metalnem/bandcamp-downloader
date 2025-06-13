@@ -17,9 +17,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0
-    - name: Unit tests
-      run: dotnet test --verbosity normal
-    - name: End-to-end tests
+    - name: Download album list
       shell: pwsh
       run: |
         dotnet run `
@@ -27,14 +25,6 @@ jobs:
           --configuration Release `
           --username "${{ secrets.BANDCAMP_USERNAME }}" `
           --password "${{ secrets.BANDCAMP_PASSWORD }}" `
-          | Tee-Object -FilePath "Output.txt"
-
-        $output = Get-Content "Output.txt" -Raw
-        $expected = Get-Content "Testcases/Albums.txt" -Raw
-
-        if ($output.Contains($expected)) {
-            Write-Host "✅ Albums.txt content found in output"
-        } else {
-            Write-Host "❌ Albums.txt content not found in output"
-            exit 1
-        }
+          | Tee-Object -FilePath "Api.Tests/Actual.txt"
+    - name: Unit tests
+      run: dotnet test --verbosity normal
